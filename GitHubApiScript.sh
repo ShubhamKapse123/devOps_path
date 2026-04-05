@@ -3,7 +3,7 @@
 # ================================
 # GitHub Collaborator Access Script
 # ================================
-# This script fetches and lists users who have READ (pull) access
+# This script fetches and lists users who have READ (pull) access or ADMIN access
 # to a given GitHub repository using GitHub REST API.
 
 # -------------------------------
@@ -45,28 +45,28 @@ function github_api_get {
 
 # -------------------------------
 # Function: list_users_with_read_access
-# Purpose : Fetch and filter users who have pull (read) access
+# Purpose : Fetch and filter users who have pull (read) or admin access
 # Logic   :
 #   1. Call GitHub API to get collaborators
-#   2. Use jq to filter users with 'pull == true'
-#   3. Extract their GitHub usernames (login field)
+#   2. Use jq to filter users with 'pull == true' OR 'admin == true'
+#   3. Extract their GitHub usernames (login field) and permissions
 # -------------------------------
 function list_users_with_read_access {
     local endpoint="repos/${REPO_OWNER}/${REPO_NAME}/collaborators"
 
-    # Fetch collaborators and filter users with read access
+    # Fetch collaborators and filter users with read or admin access
     collaborators="$(
         github_api_get "$endpoint" | \
-        jq -r '.[] | select(.permissions.pull == true)'
-    )"
+        jq -r '.[] | select(.permissions.pull == true or .permissions.admin == true) | "\(.login) - \(.permissions | to_entries | map(select(.value == true) | .key) | join(", "))"
+    )";
 
     # -------------------------------
     # Output Handling
     # -------------------------------
     if [[ -z "$collaborators" ]]; then
-        echo "No users with read access found for ${REPO_OWNER}/${REPO_NAME}."
+        echo "No users with read or admin access found for ${REPO_OWNER}/${REPO_NAME}."
     else
-        echo "Users with read access to ${REPO_OWNER}/${REPO_NAME}:"
+        echo "Users with read or admin access to ${REPO_OWNER}/${REPO_NAME}:"
         echo "$collaborators"
     fi
 }
@@ -95,5 +95,5 @@ if [[ -z "$USERNAME" || -z "$TOKEN" ]]; then
 fi
 
 # Trigger execution
-echo "Listing users with read access to ${REPO_OWNER}/${REPO_NAME}..."
+echo "Listing users with read or admin access to ${REPO_OWNER}/${REPO_NAME}..."
 list_users_with_read_access
